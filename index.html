@@ -521,7 +521,7 @@
       opacity: 1;
     }
 
-    /* ZELLE QR DISPLAY BOX IN TIP MODAL */
+    /* ZELLE & VENMO QR DISPLAY BOX IN TIP MODAL */
     .zelle-qr-display-box {
       background: #ffffff;
       padding: 12px;
@@ -533,6 +533,24 @@
     }
 
     .zelle-qr-display-box img {
+      width: 160px;
+      height: 160px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .venmo-qr-display-box {
+      background: #ffffff;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px dashed #008CFF;
+      display: inline-block;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(0, 140, 255, 0.08);
+    }
+
+    .venmo-qr-display-box img {
       width: 160px;
       height: 160px;
       object-fit: contain;
@@ -811,8 +829,8 @@
             <tr>
               <th>Technician</th>
               <th>Specialty</th>
-              <th>Zelle Phone / Email</th>
-              <th>Venmo Username</th>
+              <th>Zelle Info / QR</th>
+              <th>Venmo Username / QR</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -894,7 +912,7 @@
         </button>
       </div>
 
-      <!-- Zelle View -->
+      <!-- Zelle View with QR Image option -->
       <div id="payViewZelle">
         <div style="text-align: center;">
           <!-- Zelle Personal QR Code Container -->
@@ -924,24 +942,30 @@
         </div>
       </div>
 
-      <!-- Venmo View -->
+      <!-- Venmo View with QR Image option -->
       <div id="payViewVenmo" style="display: none;">
-        <div class="payment-details-box">
-          <div class="pay-label">Venmo Username</div>
-          <div class="pay-value" id="dispVenmoId">---</div>
-          <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-            <button class="btn-copy" onclick="copyToClipboard(currentSelectedTech.venmo, 'Venmo Username Copied!')">
-              <i class="fa-regular fa-copy"></i> Copy Handle
-            </button>
-            <a href="#" id="linkVenmoApp" target="_blank" class="btn-venmo-link">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Venmo
-            </a>
-          </div>
-        </div>
-
         <div style="text-align: center;">
+          <!-- Venmo Personal QR Code Container -->
+          <div id="boxVenmoQr" class="venmo-qr-display-box" style="display: none;">
+            <p style="font-size: 0.75rem; font-weight: 700; color: #008CFF; margin-bottom: 6px;">SCAN VENMO QR CODE</p>
+            <img id="imgVenmoQr" src="" alt="Venmo QR Code">
+          </div>
+
+          <div class="payment-details-box">
+            <div class="pay-label">Venmo Username</div>
+            <div class="pay-value" id="dispVenmoId">---</div>
+            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+              <button class="btn-copy" onclick="copyToClipboard(currentSelectedTech.venmo, 'Venmo Username Copied!')">
+                <i class="fa-regular fa-copy"></i> Copy Handle
+              </button>
+              <a href="#" id="linkVenmoApp" target="_blank" class="btn-venmo-link">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Venmo
+              </a>
+            </div>
+          </div>
+
           <p style="font-size: 0.75rem; color: var(--text-muted);">
-            Tap "Open Venmo" to launch the Venmo app directly on your phone.
+            Scan QR code with Venmo app or tap "Open Venmo" directly on your phone.
           </p>
         </div>
       </div>
@@ -1005,6 +1029,19 @@
           <input type="text" id="staffVenmo" placeholder="e.g. Sarah-Jenkins-Nails">
         </div>
 
+        <!-- Venmo QR Code Image Uploader -->
+        <div class="form-group" style="background: #e6f4ff; padding: 12px; border-radius: 8px; border: 1px dashed #008CFF;">
+          <label style="color: #008CFF;">Venmo Personal QR Code (Optional)</label>
+          <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+            <button type="button" class="btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="document.getElementById('fileVenmoQrInput').click()">
+              <i class="fa-solid fa-qrcode"></i> Upload Venmo QR Image
+            </button>
+            <span id="txtVenmoQrStatus" style="font-size: 0.75rem; color: var(--text-muted);">No QR uploaded</span>
+          </div>
+          <input type="file" id="fileVenmoQrInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'venmoQr')">
+          <input type="hidden" id="staffVenmoQr" value="">
+        </div>
+
         <button type="submit" class="btn-add" style="width: 100%; justify-content: center; margin-top: 1rem;">
           Save Technician
         </button>
@@ -1041,6 +1078,7 @@
         zelle: '555-234-5678',
         zelleQr: '',
         venmo: 'JessicaTranNails',
+        venmoQr: '',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
       },
       {
@@ -1050,6 +1088,7 @@
         zelle: 'chloe.nguyen@example.com',
         zelleQr: '',
         venmo: 'Chloe-Nguyen-Tips',
+        venmoQr: '',
         avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80'
       },
       {
@@ -1059,6 +1098,7 @@
         zelle: '555-876-5432',
         zelleQr: '',
         venmo: 'DavidLeNails',
+        venmoQr: '',
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
       }
     ];
@@ -1080,7 +1120,7 @@
         } else {
           const initialObj = {};
           defaultTechnicians.forEach(t => {
-            initialObj[t.id] = { name: t.name, role: t.role, zelle: t.zelle, zelleQr: t.zelleQr || '', venmo: t.venmo, avatar: t.avatar };
+            initialObj[t.id] = { name: t.name, role: t.role, zelle: t.zelle, zelleQr: t.zelleQr || '', venmo: t.venmo, venmoQr: t.venmoQr || '', avatar: t.avatar };
           });
           db.ref('technicians').set(initialObj);
           technicians = defaultTechnicians;
@@ -1141,7 +1181,10 @@
             <div><code style="background: #f0ebe1; padding: 2px 6px; border-radius: 4px;">${tech.zelle}</code></div>
             ${tech.zelleQr ? '<span style="font-size: 0.7rem; color: #7414ca; font-weight:600;"><i class="fa-solid fa-qrcode"></i> Has Zelle QR</span>' : ''}
           </td>
-          <td>${tech.venmo ? `@${tech.venmo}` : '-'}</td>
+          <td>
+            <div>${tech.venmo ? `@${tech.venmo}` : '-'}</div>
+            ${tech.venmoQr ? '<span style="font-size: 0.7rem; color: #008CFF; font-weight:600;"><i class="fa-solid fa-qrcode"></i> Has Venmo QR</span>' : ''}
+          </td>
           <td>
             <div class="action-btns">
               <button class="icon-btn edit" onclick="editStaff('${tech.id}')"><i class="fa-solid fa-pen"></i></button>
@@ -1152,7 +1195,7 @@
       `).join('');
     }
 
-    // Handle Image Uploads from Device (Avatar or Zelle QR)
+    // Handle Image Uploads from Device (Avatar, Zelle QR, or Venmo QR)
     function handleImageUpload(event, type) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1169,6 +1212,11 @@
           document.getElementById('txtZelleQrStatus').textContent = 'QR Code attached!';
           document.getElementById('txtZelleQrStatus').style.color = '#7414ca';
           showToast('Zelle QR code attached!');
+        } else if (type === 'venmoQr') {
+          document.getElementById('staffVenmoQr').value = base64Image;
+          document.getElementById('txtVenmoQrStatus').textContent = 'QR Code attached!';
+          document.getElementById('txtVenmoQrStatus').style.color = '#008CFF';
+          showToast('Venmo QR code attached!');
         }
       };
       reader.readAsDataURL(file);
@@ -1185,6 +1233,7 @@
           zelle: t.zelle,
           zelleQr: t.zelleQr || '',
           venmo: t.venmo,
+          venmoQr: t.venmoQr || '',
           avatar: t.avatar
         };
       });
@@ -1209,13 +1258,23 @@
       document.getElementById('dispVenmoId').textContent = currentSelectedTech.venmo ? `@${currentSelectedTech.venmo}` : 'N/A';
 
       // Zelle QR Image Display
-      const qrBox = document.getElementById('boxZelleQr');
-      const qrImg = document.getElementById('imgZelleQr');
+      const zelleQrBox = document.getElementById('boxZelleQr');
+      const zelleQrImg = document.getElementById('imgZelleQr');
       if (currentSelectedTech.zelleQr) {
-        qrImg.src = currentSelectedTech.zelleQr;
-        qrBox.style.display = 'inline-block';
+        zelleQrImg.src = currentSelectedTech.zelleQr;
+        zelleQrBox.style.display = 'inline-block';
       } else {
-        qrBox.style.display = 'none';
+        zelleQrBox.style.display = 'none';
+      }
+
+      // Venmo QR Image Display
+      const venmoQrBox = document.getElementById('boxVenmoQr');
+      const venmoQrImg = document.getElementById('imgVenmoQr');
+      if (currentSelectedTech.venmoQr) {
+        venmoQrImg.src = currentSelectedTech.venmoQr;
+        venmoQrBox.style.display = 'inline-block';
+      } else {
+        venmoQrBox.style.display = 'none';
       }
 
       if (currentSelectedTech.venmo) {
@@ -1279,9 +1338,14 @@
       const defaultImg = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
       document.getElementById('formAvatarPreview').src = defaultImg;
       document.getElementById('staffAvatar').value = defaultImg;
+      
       document.getElementById('staffZelleQr').value = '';
       document.getElementById('txtZelleQrStatus').textContent = 'No QR uploaded';
       document.getElementById('txtZelleQrStatus').style.color = 'var(--text-muted)';
+
+      document.getElementById('staffVenmoQr').value = '';
+      document.getElementById('txtVenmoQrStatus').textContent = 'No QR uploaded';
+      document.getElementById('txtVenmoQrStatus').style.color = 'var(--text-muted)';
 
       document.getElementById('staffFormModal').classList.add('active');
     }
@@ -1298,13 +1362,14 @@
       const zelle = document.getElementById('staffZelle').value.trim();
       const zelleQr = document.getElementById('staffZelleQr').value.trim();
       const venmo = document.getElementById('staffVenmo').value.trim().replace('@', '');
+      const venmoQr = document.getElementById('staffVenmoQr').value.trim();
       const avatar = document.getElementById('staffAvatar').value.trim();
 
       if (id) {
         // Edit existing
         const index = technicians.findIndex(t => t.id === id);
         if (index !== -1) {
-          technicians[index] = { id, name, role, zelle, zelleQr, venmo, avatar: avatar || technicians[index].avatar };
+          technicians[index] = { id, name, role, zelle, zelleQr, venmo, venmoQr, avatar: avatar || technicians[index].avatar };
         }
       } else {
         // Add new
@@ -1315,6 +1380,7 @@
           zelle,
           zelleQr,
           venmo,
+          venmoQr,
           avatar: avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
         };
         technicians.push(newTech);
@@ -1334,6 +1400,7 @@
       document.getElementById('staffZelle').value = tech.zelle;
       document.getElementById('staffZelleQr').value = tech.zelleQr || '';
       document.getElementById('staffVenmo').value = tech.venmo;
+      document.getElementById('staffVenmoQr').value = tech.venmoQr || '';
       document.getElementById('staffAvatar').value = tech.avatar || '';
       
       const imgPreviewSrc = tech.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
@@ -1345,6 +1412,14 @@
       } else {
         document.getElementById('txtZelleQrStatus').textContent = 'No QR uploaded';
         document.getElementById('txtZelleQrStatus').style.color = 'var(--text-muted)';
+      }
+
+      if (tech.venmoQr) {
+        document.getElementById('txtVenmoQrStatus').textContent = 'QR Code attached!';
+        document.getElementById('txtVenmoQrStatus').style.color = '#008CFF';
+      } else {
+        document.getElementById('txtVenmoQrStatus').textContent = 'No QR uploaded';
+        document.getElementById('txtVenmoQrStatus').style.color = 'var(--text-muted)';
       }
 
       document.getElementById('staffFormTitle').textContent = 'Edit Technician';
