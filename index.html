@@ -471,7 +471,7 @@
       background: #f5f0e6;
     }
 
-    /* AVATAR & ZELLE QR UPLOADERS */
+    /* FACEBOOK-STYLE AVATAR UPLOADER IN MODAL */
     .avatar-upload-container {
       display: flex;
       flex-direction: column;
@@ -521,7 +521,7 @@
       opacity: 1;
     }
 
-    /* ZELLE QR CARD IN MODAL */
+    /* ZELLE QR DISPLAY BOX IN TIP MODAL */
     .zelle-qr-display-box {
       background: #ffffff;
       padding: 12px;
@@ -811,7 +811,7 @@
             <tr>
               <th>Technician</th>
               <th>Specialty</th>
-              <th>Zelle Info / QR</th>
+              <th>Zelle Phone / Email</th>
               <th>Venmo Username</th>
               <th>Actions</th>
             </tr>
@@ -894,7 +894,7 @@
         </button>
       </div>
 
-      <!-- Zelle View with QR Image option -->
+      <!-- Zelle View -->
       <div id="payViewZelle">
         <div style="text-align: center;">
           <!-- Zelle Personal QR Code Container -->
@@ -957,7 +957,7 @@
       <form id="staffForm" onsubmit="saveStaff(event)">
         <input type="hidden" id="staffId">
         
-        <!-- Profile Picture Uploader -->
+        <!-- Facebook-style Avatar Picker -->
         <div class="avatar-upload-container">
           <label style="font-size: 0.85rem; font-weight: 600; color: var(--accent); margin-bottom: 0.4rem;">Profile Picture</label>
           <div class="avatar-preview-wrapper" onclick="document.getElementById('fileAvatarInput').click()" title="Click to change photo">
@@ -969,6 +969,7 @@
           </div>
           <input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'avatar')">
           <input type="hidden" id="staffAvatar" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150">
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">Tap circle to upload photo from device</p>
         </div>
 
         <div class="form-group">
@@ -1031,4 +1032,371 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    //
+    // Default Initial Data if Database is empty
+    const defaultTechnicians = [
+      {
+        id: '1',
+        name: 'Jessica Tran',
+        role: 'Master Nail Artist',
+        zelle: '555-234-5678',
+        zelleQr: '',
+        venmo: 'JessicaTranNails',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+      },
+      {
+        id: '2',
+        name: 'Chloe Nguyen',
+        role: 'Pedicure & Spa Specialist',
+        zelle: 'chloe.nguyen@example.com',
+        zelleQr: '',
+        venmo: 'Chloe-Nguyen-Tips',
+        avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80'
+      },
+      {
+        id: '3',
+        name: 'David Le',
+        role: 'Acrylic & Extension Specialist',
+        zelle: '555-876-5432',
+        zelleQr: '',
+        venmo: 'DavidLeNails',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+      }
+    ];
+
+    let technicians = [];
+    let currentSelectedTech = null;
+
+    // Initialize App & Realtime Firebase Listener
+    document.addEventListener('DOMContentLoaded', () => {
+      initStandQR();
+      
+      db.ref('technicians').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          technicians = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+          }));
+        } else {
+          const initialObj = {};
+          defaultTechnicians.forEach(t => {
+            initialObj[t.id] = { name: t.name, role: t.role, zelle: t.zelle, zelleQr: t.zelleQr || '', venmo: t.venmo, avatar: t.avatar };
+          });
+          db.ref('technicians').set(initialObj);
+          technicians = defaultTechnicians;
+        }
+        renderDirectory();
+        renderAdminTable();
+      });
+    });
+
+    // Navigation Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      event.currentTarget.classList.add('active');
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+    }
+
+    // Render Directory Cards (Customer View)
+    function renderDirectory() {
+      const grid = document.getElementById('directoryGrid');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      
+      const filtered = technicians.filter(t => 
+        t.name.toLowerCase().includes(search) || t.role.toLowerCase().includes(search)
+      );
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">No technicians found matching "${search}".</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(tech => `
+        <div class="tech-card" onclick="openTipModal('${tech.id}')">
+          <img class="avatar" src="${tech.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" alt="${tech.name}">
+          <div class="tech-name">${tech.name}</div>
+          <div class="tech-role">${tech.role || 'Staff Specialist'}</div>
+          <button class="btn-tip-now">
+            <i class="fa-solid fa-heart"></i> Tip ${tech.name.split(' ')[0]}
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // Render Admin Table
+    function renderAdminTable() {
+      const tbody = document.getElementById('adminTableBody');
+      tbody.innerHTML = technicians.map(tech => `
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <img class="table-avatar" src="${tech.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}" alt="">
+              <strong style="color: var(--accent);">${tech.name}</strong>
+            </div>
+          </td>
+          <td>${tech.role || '-'}</td>
+          <td>
+            <div><code style="background: #f0ebe1; padding: 2px 6px; border-radius: 4px;">${tech.zelle}</code></div>
+            ${tech.zelleQr ? '<span style="font-size: 0.7rem; color: #7414ca; font-weight:600;"><i class="fa-solid fa-qrcode"></i> Has Zelle QR</span>' : ''}
+          </td>
+          <td>${tech.venmo ? `@${tech.venmo}` : '-'}</td>
+          <td>
+            <div class="action-btns">
+              <button class="icon-btn edit" onclick="editStaff('${tech.id}')"><i class="fa-solid fa-pen"></i></button>
+              <button class="icon-btn delete" onclick="deleteStaff('${tech.id}')"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Handle Image Uploads from Device (Avatar or Zelle QR)
+    function handleImageUpload(event, type) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Image = e.target.result;
+        if (type === 'avatar') {
+          document.getElementById('formAvatarPreview').src = base64Image;
+          document.getElementById('staffAvatar').value = base64Image;
+          showToast('Photo loaded successfully!');
+        } else if (type === 'zelleQr') {
+          document.getElementById('staffZelleQr').value = base64Image;
+          document.getElementById('txtZelleQrStatus').textContent = 'QR Code attached!';
+          document.getElementById('txtZelleQrStatus').style.color = '#7414ca';
+          showToast('Zelle QR code attached!');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Save Data to Firebase Realtime Database
+    function saveToCloud() {
+      const techObj = {};
+      technicians.forEach(t => {
+        const id = t.id || Date.now().toString();
+        techObj[id] = {
+          name: t.name,
+          role: t.role,
+          zelle: t.zelle,
+          zelleQr: t.zelleQr || '',
+          venmo: t.venmo,
+          avatar: t.avatar
+        };
+      });
+
+      db.ref('technicians').set(techObj).then(() => {
+        showToast('Synced to Cloud successfully!');
+      }).catch(error => {
+        showToast('Sync failed: ' + error.message);
+      });
+    }
+
+    // Tip Modal Controls
+    function openTipModal(techId) {
+      currentSelectedTech = technicians.find(t => t.id === techId);
+      if (!currentSelectedTech) return;
+
+      document.getElementById('modalTechAvatar').src = currentSelectedTech.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+      document.getElementById('modalTechName').textContent = currentSelectedTech.name;
+      document.getElementById('modalTechRole').textContent = currentSelectedTech.role || 'Staff Specialist';
+
+      document.getElementById('dispZelleId').textContent = currentSelectedTech.zelle;
+      document.getElementById('dispVenmoId').textContent = currentSelectedTech.venmo ? `@${currentSelectedTech.venmo}` : 'N/A';
+
+      // Zelle QR Image Display
+      const qrBox = document.getElementById('boxZelleQr');
+      const qrImg = document.getElementById('imgZelleQr');
+      if (currentSelectedTech.zelleQr) {
+        qrImg.src = currentSelectedTech.zelleQr;
+        qrBox.style.display = 'inline-block';
+      } else {
+        qrBox.style.display = 'none';
+      }
+
+      if (currentSelectedTech.venmo) {
+        document.getElementById('linkVenmoApp').href = `https://venmo.com/${currentSelectedTech.venmo.replace('@','')}`;
+        document.getElementById('linkVenmoApp').style.display = 'inline-flex';
+      } else {
+        document.getElementById('linkVenmoApp').style.display = 'none';
+      }
+
+      switchPaymentMethod('zelle');
+      document.getElementById('tipModal').classList.add('active');
+    }
+
+    function closeTipModal() {
+      document.getElementById('tipModal').classList.remove('active');
+    }
+
+    function switchPaymentMethod(method) {
+      const btnZelle = document.getElementById('btnTabZelle');
+      const btnVenmo = document.getElementById('btnTabVenmo');
+      const viewZelle = document.getElementById('payViewZelle');
+      const viewVenmo = document.getElementById('payViewVenmo');
+
+      if (method === 'zelle') {
+        btnZelle.classList.add('active');
+        btnVenmo.classList.remove('active');
+        viewZelle.style.display = 'block';
+        viewVenmo.style.display = 'none';
+      } else {
+        btnVenmo.classList.add('active');
+        btnZelle.classList.remove('active');
+        viewVenmo.style.display = 'block';
+        viewZelle.style.display = 'none';
+      }
+    }
+
+    // Clipboard Copy Helper
+    function copyToClipboard(text, message) {
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(message || 'Copied to clipboard!');
+      });
+    }
+
+    // Toast Notification Display
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // Admin Staff Modal Controls
+    function openStaffModal() {
+      document.getElementById('staffForm').reset();
+      document.getElementById('staffId').value = '';
+      document.getElementById('staffFormTitle').textContent = 'Add Technician';
+      
+      const defaultImg = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+      document.getElementById('formAvatarPreview').src = defaultImg;
+      document.getElementById('staffAvatar').value = defaultImg;
+      document.getElementById('staffZelleQr').value = '';
+      document.getElementById('txtZelleQrStatus').textContent = 'No QR uploaded';
+      document.getElementById('txtZelleQrStatus').style.color = 'var(--text-muted)';
+
+      document.getElementById('staffFormModal').classList.add('active');
+    }
+
+    function closeStaffModal() {
+      document.getElementById('staffFormModal').classList.remove('active');
+    }
+
+    function saveStaff(e) {
+      e.preventDefault();
+      const id = document.getElementById('staffId').value;
+      const name = document.getElementById('staffName').value.trim();
+      const role = document.getElementById('staffRole').value.trim();
+      const zelle = document.getElementById('staffZelle').value.trim();
+      const zelleQr = document.getElementById('staffZelleQr').value.trim();
+      const venmo = document.getElementById('staffVenmo').value.trim().replace('@', '');
+      const avatar = document.getElementById('staffAvatar').value.trim();
+
+      if (id) {
+        // Edit existing
+        const index = technicians.findIndex(t => t.id === id);
+        if (index !== -1) {
+          technicians[index] = { id, name, role, zelle, zelleQr, venmo, avatar: avatar || technicians[index].avatar };
+        }
+      } else {
+        // Add new
+        const newTech = {
+          id: Date.now().toString(),
+          name,
+          role,
+          zelle,
+          zelleQr,
+          venmo,
+          avatar: avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
+        };
+        technicians.push(newTech);
+      }
+
+      saveToCloud();
+      closeStaffModal();
+    }
+
+    function editStaff(id) {
+      const tech = technicians.find(t => t.id === id);
+      if (!tech) return;
+
+      document.getElementById('staffId').value = tech.id;
+      document.getElementById('staffName').value = tech.name;
+      document.getElementById('staffRole').value = tech.role;
+      document.getElementById('staffZelle').value = tech.zelle;
+      document.getElementById('staffZelleQr').value = tech.zelleQr || '';
+      document.getElementById('staffVenmo').value = tech.venmo;
+      document.getElementById('staffAvatar').value = tech.avatar || '';
+      
+      const imgPreviewSrc = tech.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+      document.getElementById('formAvatarPreview').src = imgPreviewSrc;
+
+      if (tech.zelleQr) {
+        document.getElementById('txtZelleQrStatus').textContent = 'QR Code attached!';
+        document.getElementById('txtZelleQrStatus').style.color = '#7414ca';
+      } else {
+        document.getElementById('txtZelleQrStatus').textContent = 'No QR uploaded';
+        document.getElementById('txtZelleQrStatus').style.color = 'var(--text-muted)';
+      }
+
+      document.getElementById('staffFormTitle').textContent = 'Edit Technician';
+      document.getElementById('staffFormModal').classList.add('active');
+    }
+
+    function deleteStaff(id) {
+      if (confirm('Are you sure you want to delete this technician?')) {
+        technicians = technicians.filter(t => t.id !== id);
+        saveToCloud();
+        showToast('Technician removed');
+      }
+    }
+
+    // Master Stand QR Generation
+    let qrInstance = null;
+
+    function initStandQR() {
+      const qrContainer = document.getElementById('standQrCode');
+      qrContainer.innerHTML = '';
+      
+      const currentUrl = window.location.href;
+
+      qrInstance = new QRCode(qrContainer, {
+        text: currentUrl,
+        width: 140,
+        height: 140,
+        colorDark: "#2c223b",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+
+    function updateTableStand() {
+      document.getElementById('dispSalonName').textContent = document.getElementById('cfgSalonName').value || 'BEAUTILUXE NAIL SPA';
+      document.getElementById('dispSubText').textContent = document.getElementById('cfgSubText').value || 'STAFF TIP DIRECTORY';
+      document.getElementById('dispInstruction').textContent = document.getElementById('cfgInstruction').value || 'Scan to tip your specialist!';
+    }
+
+    function downloadStandImage() {
+      const standElement = document.getElementById('printableStand');
+      html2canvas(standElement, { scale: 3 }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'Beautiluxe-Table-Stand.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+
+    function printStand() {
+      window.print();
+    }
+  </script>
+</body>
+</html>
